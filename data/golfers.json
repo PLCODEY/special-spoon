@@ -47,5 +47,6 @@
   { "id": "thomas-detry", "name": "Thomas Detry", "odds": "+15000", "oddsValue": 15000 },
   { "id": "zach-johnson", "name": "Zach Johnson", "odds": "+20000", "oddsValue": 20000 },
   { "id": "chris-kirk", "name": "Chris Kirk", "odds": "+20000", "oddsValue": 20000 },
-  { "id": "taylor-moore", "name": "Taylor Moore", "odds": "+20000", "oddsValue": 20000 }
+  { "id": "taylor-moore", "name": "Taylor Moore", "odds": "+20000", "oddsValue": 20000 },
+  { "id": "justin-rose", "name": "Justin Rose", "odds": "+20000", "oddsValue": 20000 }
 ]
