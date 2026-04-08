@@ -1,6 +1,13 @@
 import { Pick, LeaderboardEntry, TeamResult, TeamGolfer } from "./types";
 import { getTeamPicks } from "./draft";
 
+const LEADER_BONUS = -10;
+
+function isLeader(position: string): boolean {
+  // Matches "1" or "T1" (sole leader or tied for first)
+  return position === "1" || position === "T1";
+}
+
 export function calculateStandings(
   picks: Pick[],
   leaderboard: LeaderboardEntry[],
@@ -29,6 +36,7 @@ export function calculateStandings(
         eliminated: false,
         combinedScore: null,
         best2: [],
+        leaderBonus: false,
       };
     }
 
@@ -48,6 +56,7 @@ export function calculateStandings(
         eliminationReason: `Only ${madecut.length} golfer(s) made the cut`,
         combinedScore: null,
         best2: [],
+        leaderBonus: false,
       };
     }
 
@@ -56,10 +65,21 @@ export function calculateStandings(
       (a, b) => (a.liveData!.score ?? 0) - (b.liveData!.score ?? 0)
     );
     const best2 = sorted.slice(0, 2);
-    const combinedScore =
+
+    // Check if any golfer on this team is currently leading
+    const hasLeader = teamGolfers.some(
+      (g) => g.liveData && isLeader(g.liveData.position)
+    );
+
+    let combinedScore =
       best2.length === 2
         ? best2.reduce((sum, g) => sum + (g.liveData?.score ?? 0), 0)
         : null;
+
+    // Apply -10 leader bonus
+    if (combinedScore !== null && hasLeader) {
+      combinedScore += LEADER_BONUS;
+    }
 
     return {
       drafter,
@@ -67,6 +87,7 @@ export function calculateStandings(
       eliminated: false,
       combinedScore,
       best2,
+      leaderBonus: hasLeader,
     };
   });
 

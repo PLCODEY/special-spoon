@@ -78,10 +78,15 @@ export default function Standings({ standings, hasLiveData }: Props) {
                 <div className="text-red-400 text-sm">{team.eliminationReason}</div>
               ) : team.combinedScore !== null ? (
                 <div>
-                  <div className="text-white font-bold text-xl">
+                  <div className="text-white font-bold text-xl flex items-center gap-2 justify-end">
                     {formatScore(team.combinedScore)}
+                    {team.leaderBonus && (
+                      <span className="text-yellow-400 text-sm font-bold animate-pulse">🏆 -10</span>
+                    )}
                   </div>
-                  <div className="text-gray-400 text-xs">combined (best 2)</div>
+                  <div className="text-gray-400 text-xs">
+                    combined (best 2){team.leaderBonus ? " + leader bonus" : ""}
+                  </div>
                 </div>
               ) : (
                 <div className="text-gray-500 text-sm">Awaiting scores</div>
@@ -138,7 +143,10 @@ export default function Standings({ standings, hasLiveData }: Props) {
                     <div className="flex gap-2 mt-0.5 text-xs text-gray-500">
                       <span>{g.liveData.position}</span>
                       <span>Thru {g.liveData.thru}</span>
-                      {isBest2 && hasLiveData && (
+                      {(g.liveData.position === "1" || g.liveData.position === "T1") && (
+                        <span className="text-yellow-400 ml-auto">🏆 leader</span>
+                      )}
+                      {isBest2 && hasLiveData && g.liveData.position !== "1" && g.liveData.position !== "T1" && (
                         <span className="text-green-600 ml-auto">★ scoring</span>
                       )}
                     </div>

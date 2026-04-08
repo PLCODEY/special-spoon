@@ -48,6 +48,7 @@ export interface TeamResult {
   combinedScore: number | null;
   best2: TeamGolfer[];
   rank?: number;
+  leaderBonus: boolean;
 }
 
 export interface TeamGolfer {
