@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import DraftBoard from "@/components/DraftBoard";
 import GolferList from "@/components/GolferList";
@@ -12,21 +12,30 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type Tab = "draft" | "standings" | "leaderboard";
 
+interface DraftPayload {
+  picks: Pick[];
+  golfers: Array<{ id: string; name: string; odds: string; oddsValue: number; drafted: boolean }>;
+  currentPicker: string | null;
+  nextPicker: string | null;
+  draftComplete: boolean;
+  snakeOrder: string[];
+}
+
 export default function Home() {
   const [tab, setTab] = useState<Tab>("draft");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [undoing, setUndoing] = useState(false);
+  const [sseConnected, setSseConnected] = useState(false);
 
-  const { data: draftData, mutate: mutateDraft } = useSWR(
-    "/api/draft",
-    fetcher,
-    { refreshInterval: 5000 }
-  );
+  // Draft state — initially fetched, then kept live via SSE
+  const [draftData, setDraftData] = useState<DraftPayload | null>(null);
 
+  // Config — polled every 60s (changes rarely)
   const { data: configData } = useSWR<Config>("/api/config", fetcher, {
-    refreshInterval: 30000,
+    refreshInterval: 60000,
   });
 
+  // Leaderboard — polled every 30s (external API)
   const { data: leaderboardData, mutate: mutateLeaderboard } = useSWR(
     "/api/leaderboard",
     fetcher,
@@ -35,6 +44,48 @@ export default function Home() {
       onSuccess: () => setLastUpdated(new Date()),
     }
   );
+
+  // Initial draft fetch
+  useEffect(() => {
+    fetch("/api/draft")
+      .then((r) => r.json())
+      .then(setDraftData);
+  }, []);
+
+  // SSE connection for real-time draft updates
+  useEffect(() => {
+    let es: EventSource;
+    let retryTimeout: ReturnType<typeof setTimeout>;
+
+    function connect() {
+      es = new EventSource("/api/events");
+
+      es.onopen = () => setSseConnected(true);
+
+      es.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "draft_update") {
+            setDraftData(msg.payload);
+          }
+        } catch {}
+      };
+
+      es.onerror = () => {
+        setSseConnected(false);
+        es.close();
+        // Reconnect after 3 seconds
+        retryTimeout = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      es?.close();
+      clearTimeout(retryTimeout);
+    };
+  }, []);
 
   const picks: Pick[] = draftData?.picks || [];
   const golfers = draftData?.golfers || [];
@@ -54,16 +105,21 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ golferId }),
     });
-    if (res.ok) {
-      mutateDraft();
+    // SSE will push the update — no need to manually refresh
+    if (!res.ok) {
+      // Fallback: refresh manually if SSE isn't connected
+      fetch("/api/draft").then((r) => r.json()).then(setDraftData);
     }
   }
 
   async function handleUndo() {
     setUndoing(true);
     await fetch("/api/draft", { method: "DELETE" });
-    await mutateDraft();
     setUndoing(false);
+    // SSE will push the update — fallback below
+    if (!sseConnected) {
+      fetch("/api/draft").then((r) => r.json()).then(setDraftData);
+    }
   }
 
   const tabs: { id: Tab; label: string; badge?: string }[] = [
@@ -86,15 +142,18 @@ export default function Home() {
               <h1 className="text-xl font-bold text-white flex items-center gap-2">
                 <span className="text-green-500">⛳</span>
                 {configData?.competition || "Golf Snake Draft"}
+                <span
+                  title={sseConnected ? "Live updates active" : "Reconnecting..."}
+                  className={`w-2 h-2 rounded-full ${
+                    sseConnected ? "bg-green-500" : "bg-yellow-500 animate-pulse"
+                  }`}
+                />
               </h1>
               {!draftComplete && currentPicker && (
                 <div className="text-sm text-yellow-400 mt-0.5">
-                  On the clock:{" "}
-                  <strong>{currentPicker}</strong>
+                  On the clock: <strong>{currentPicker}</strong>
                   {nextPicker && (
-                    <span className="text-gray-500 ml-2">
-                      Next: {nextPicker}
-                    </span>
+                    <span className="text-gray-500 ml-2">Next: {nextPicker}</span>
                   )}
                 </div>
               )}
