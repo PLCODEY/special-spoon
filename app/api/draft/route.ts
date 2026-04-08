@@ -114,6 +114,51 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { pickNumber, golferId } = body;
+
+    const draft = readDraft();
+    const config = readConfig();
+    const golfers = readGolfers();
+
+    const pickIdx = draft.picks.findIndex((p) => p.pickNumber === pickNumber);
+    if (pickIdx === -1) {
+      return NextResponse.json({ error: "Pick not found" }, { status: 404 });
+    }
+
+    // Check golfer not already taken by a different pick
+    const alreadyTaken = draft.picks.find(
+      (p) => p.golferId === golferId && p.pickNumber !== pickNumber
+    );
+    if (alreadyTaken) {
+      return NextResponse.json({ error: "Golfer already drafted by someone else" }, { status: 400 });
+    }
+
+    const golfer = (golfers as Array<{ id: string; name: string }>).find(
+      (g) => g.id === golferId
+    );
+    if (!golfer) {
+      return NextResponse.json({ error: "Golfer not found" }, { status: 404 });
+    }
+
+    draft.picks[pickIdx] = {
+      ...draft.picks[pickIdx],
+      golferId,
+      golferName: golfer.name,
+    };
+
+    writeDraft(draft);
+    const payload = buildDraftPayload(draft, config, golfers);
+    eventBus.emit("draft_update", payload);
+
+    return NextResponse.json({ success: true, pick: draft.picks[pickIdx] });
+  } catch {
+    return NextResponse.json({ error: "Failed to edit pick" }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
