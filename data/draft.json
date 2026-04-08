@@ -1,3 +1,26 @@
 {
-  "picks": []
+  "picks": [
+    {"pickNumber":1,"drafter":"Paul","golferId":"scottie-scheffler","golferName":"Scottie Scheffler","timestamp":"2026-04-08T04:14:37.763Z"},
+    {"pickNumber":2,"drafter":"Jack","golferId":"jon-rahm","golferName":"Jon Rahm","timestamp":"2026-04-08T04:14:49.986Z"},
+    {"pickNumber":3,"drafter":"Wilson","golferId":"rory-mcilroy","golferName":"Rory McIlroy","timestamp":"2026-04-08T04:14:50.745Z"},
+    {"pickNumber":4,"drafter":"Henry","golferId":"bryson-dechambeau","golferName":"Bryson DeChambeau","timestamp":"2026-04-08T04:14:52.979Z"},
+    {"pickNumber":5,"drafter":"Chris","golferId":"xander-schauffele","golferName":"Xander Schauffele","timestamp":"2026-04-08T04:14:57.518Z"},
+    {"pickNumber":6,"drafter":"Vic","golferId":"cameron-young","golferName":"Cameron Young","timestamp":"2026-04-08T04:15:04.669Z"},
+    {"pickNumber":7,"drafter":"Shaun","golferId":"ludvig-aberg","golferName":"Ludvig Åberg","timestamp":"2026-04-08T04:15:12.847Z"},
+    {"pickNumber":8,"drafter":"Miky","golferId":"matt-fitzpatrick","golferName":"Matt Fitzpatrick","timestamp":"2026-04-08T04:15:24.312Z"},
+    {"pickNumber":9,"drafter":"Tony","golferId":"hideki-matsuyama","golferName":"Hideki Matsuyama","timestamp":"2026-04-08T04:15:28.666Z"},
+    {"pickNumber":10,"drafter":"Jason","golferId":"tommy-fleetwood","golferName":"Tommy Fleetwood","timestamp":"2026-04-08T04:15:32.218Z"},
+    {"pickNumber":11,"drafter":"Jason","golferId":"patrick-reed","golferName":"Patrick Reed","timestamp":"2026-04-08T04:15:40.368Z"},
+    {"pickNumber":12,"drafter":"Tony","golferId":"min-woo-lee","golferName":"Min Woo Lee","timestamp":"2026-04-08T04:15:51.659Z"},
+    {"pickNumber":13,"drafter":"Miky","golferId":"collin-morikawa","golferName":"Collin Morikawa","timestamp":"2026-04-08T04:16:01.670Z"},
+    {"pickNumber":14,"drafter":"Shaun","golferId":"robert-macintyre","golferName":"Robert MacIntyre","timestamp":"2026-04-08T04:16:14.522Z"},
+    {"pickNumber":15,"drafter":"Vic","golferId":"justin-thomas","golferName":"Justin Thomas","timestamp":"2026-04-08T04:16:22.668Z"},
+    {"pickNumber":16,"drafter":"Chris","golferId":"brooks-koepka","golferName":"Brooks Koepka","timestamp":"2026-04-08T04:16:32.118Z"},
+    {"pickNumber":17,"drafter":"Henry","golferId":"akshay-bhatia","golferName":"Akshay Bhatia","timestamp":"2026-04-08T04:16:41.486Z"},
+    {"pickNumber":18,"drafter":"Wilson","golferId":"justin-rose","golferName":"Justin Rose","timestamp":"2026-04-08T04:16:47.481Z"},
+    {"pickNumber":19,"drafter":"Jack","golferId":"tyrrell-hatton","golferName":"Tyrrell Hatton","timestamp":"2026-04-08T04:30:56.967Z"},
+    {"pickNumber":20,"drafter":"Paul","golferId":"viktor-hovland","golferName":"Viktor Hovland","timestamp":"2026-04-08T04:33:22.280Z"},
+    {"pickNumber":21,"drafter":"Paul","golferId":"si-woo-kim","golferName":"Si Woo Kim","timestamp":"2026-04-08T04:33:37.496Z"},
+    {"pickNumber":22,"drafter":"Jack","golferId":"russell-henley","golferName":"Russell Henley","timestamp":"2026-04-08T04:46:16.700Z"}
+  ]
 }
