@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import DraftBoard from "@/components/DraftBoard";
 import GolferList from "@/components/GolferList";
