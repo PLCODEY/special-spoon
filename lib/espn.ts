@@ -9,24 +9,11 @@ const ESPN_HEADERS = {
   Accept: "application/json",
 };
 
-// Augusta National par by hole (18 holes, par 72)
-const HOLE_PARS = [4, 5, 4, 3, 4, 3, 4, 5, 4, 4, 4, 3, 5, 4, 5, 3, 4, 4];
-const ROUND_PAR = 72;
-
-// Cumulative par through hole N (1-indexed)
-function parThruHole(hole: number): number {
-  return HOLE_PARS.slice(0, Math.min(hole, 18)).reduce((a, b) => a + b, 0);
-}
-
 function parseScore(val: unknown): number | null {
   if (val === null || val === undefined) return null;
-  if (typeof val === "object") {
-    const obj = val as Record<string, unknown>;
-    if (typeof obj.value === "number") return obj.value;
-    if (obj.displayValue !== undefined) return parseScore(obj.displayValue);
-  }
+  if (typeof val === "number") return val;
   const s = String(val).trim();
-  if (s === "" || s === "-" || s === "--" || s === "N/A") return null;
+  if (s === "" || s === "-" || s === "--") return null;
   if (s === "E") return 0;
   const n = parseInt(s, 10);
   return isNaN(n) ? null : n;
@@ -39,156 +26,6 @@ function formatScore(score: number | null): string {
 }
 
 type ESPNStatus = "active" | "cut" | "wd" | "dq" | "unknown";
-
-function parseStatus(comp: Record<string, unknown>): ESPNStatus {
-  const statusObj = comp.status as Record<string, unknown> | undefined;
-  const typeObj = statusObj?.type as Record<string, unknown> | undefined;
-  const typeId = typeObj?.id as string | undefined;
-  const typeName = ((typeObj?.name as string) || "").toUpperCase();
-  const displayValue = ((statusObj?.displayValue as string) || "").toLowerCase();
-
-  if (typeId === "2" || typeName.includes("CUT") || displayValue.includes("cut") || displayValue === "mc") return "cut";
-  if (typeId === "3" || typeId === "6" || typeName.includes("WITHDRAWN") || typeName.includes("_WD") || displayValue.includes("withdrew") || displayValue === "wd") return "wd";
-  if (typeId === "7" || typeName.includes("DISQUALIF") || displayValue === "dq") return "dq";
-  return "active";
-}
-
-function parseThruNumber(comp: Record<string, unknown>): number | null {
-  const status = comp.status as Record<string, unknown> | undefined;
-  if (!status) return null;
-
-  if (status.thru !== undefined && status.thru !== null) {
-    const n = Number(status.thru);
-    if (!isNaN(n)) return n;
-  }
-
-  const typeObj = status.type as Record<string, unknown> | undefined;
-  const shortDetail = (typeObj?.shortDetail as string) || "";
-  if (shortDetail.toUpperCase() === "F") return 18;
-  const m = shortDetail.match(/thru\s*(\d+)/i);
-  if (m) return parseInt(m[1], 10);
-  if (/^\d+/.test(shortDetail)) return parseInt(shortDetail, 10);
-
-  const typeName = (typeObj?.name as string) || "";
-  if (typeName.includes("PLAY_COMPLETE")) return 18;
-
-  return null;
-}
-
-function parseThruDisplay(comp: Record<string, unknown>): string {
-  const n = parseThruNumber(comp);
-  if (n === 18) return "F";
-  if (n !== null && n > 0) return String(n);
-
-  const status = comp.status as Record<string, unknown> | undefined;
-  const typeObj = (status?.type as Record<string, unknown> | undefined);
-  const typeName = (typeObj?.name as string) || "";
-  if (typeName.includes("PLAY_COMPLETE")) return "F";
-
-  return "-";
-}
-
-function hasPlayerStarted(
-  comp: Record<string, unknown>,
-  linescores: Array<Record<string, unknown>>
-): boolean {
-  const n = parseThruNumber(comp);
-  if (n !== null && n > 0) return true;
-
-  const statusObj = comp.status as Record<string, unknown> | undefined;
-  const typeObj = (statusObj?.type as Record<string, unknown> | undefined);
-  const typeName = ((typeObj?.name as string) || "").toUpperCase();
-  if (typeName.includes("SCHEDULED") || typeName.includes("PRE_PLAY")) return false;
-  if (typeName.includes("IN_PROGRESS") || typeName.includes("PLAY_COMPLETE")) return true;
-
-  // Check for any non-zero linescore
-  return linescores.some((ls) => {
-    const v = parseScore(ls.value ?? ls.displayValue);
-    return v !== null && v !== 0;
-  });
-}
-
-/**
- * Compute tournament score relative to par.
- *
- * ESPN's comp.score contains total strokes played (not relative to par).
- * linescores[n] represents each round:
- *   - Completed rounds: total strokes for 18 holes (e.g. 68)
- *   - In-progress round: total strokes for holes played so far (e.g. 25 thru 7 holes)
- *
- * We convert to relative using Augusta par (72 per round, or cumulative par thru N holes).
- */
-function computeRelativeScore(
-  comp: Record<string, unknown>,
-  linescores: Array<Record<string, unknown>>
-): number | null {
-  // 1. Try explicit relative-to-par fields first
-  for (const field of ["toPar", "overallToPar", "scoreRelativeToPar"]) {
-    const v = comp[field];
-    if (v !== null && v !== undefined) {
-      const s = parseScore(v);
-      if (s !== null) return s;
-    }
-  }
-
-  // 2. If comp.score (as object or string) looks like a relative-to-par string
-  const scoreObj = comp.score as Record<string, unknown> | undefined;
-  if (typeof scoreObj === "object" && scoreObj !== null) {
-    const dv = scoreObj.displayValue as string | undefined;
-    if (dv && (dv === "E" || /^[+-]\d+$/.test(dv))) {
-      return parseScore(dv);
-    }
-  }
-  if (typeof comp.score === "string") {
-    const s = comp.score.trim();
-    if (s === "E" || /^[+-]\d+$/.test(s)) {
-      return parseScore(s);
-    }
-  }
-
-  // 3. Compute from linescores using Augusta par table
-  if (linescores.length > 0) {
-    const thruHoles = parseThruNumber(comp); // holes played in current (last) round
-    let total = 0;
-    let valid = true;
-
-    for (let i = 0; i < linescores.length; i++) {
-      const ls = linescores[i];
-      const dv = String(ls.displayValue ?? ls.value ?? "").trim();
-
-      // displayValue explicitly formatted as relative (E, -4, +2) — use directly
-      if (dv === "E") { /* total += 0 */ continue; }
-      if (/^[+-]\d+$/.test(dv)) { total += parseScore(dv) ?? 0; continue; }
-
-      const v = parseScore(ls.value ?? ls.displayValue);
-      if (v === null) { valid = false; break; }
-
-      // Negative value = definitely relative to par
-      if (v <= 0) { total += v; continue; }
-
-      // Positive value = total strokes; convert using Augusta par table.
-      // (You cannot have negative or zero total strokes, so 0 = even par is handled above.)
-      const isLastRound = i === linescores.length - 1;
-      const isInProgress = isLastRound && thruHoles !== null && thruHoles > 0 && thruHoles < 18;
-
-      if (isInProgress) {
-        total += v - parThruHole(thruHoles!);
-      } else {
-        // Complete 18-hole round
-        total += v - ROUND_PAR;
-      }
-    }
-
-    if (valid) return total;
-  }
-
-  // 4. Raw comp.score fallback — only use if it looks like relative to par
-  const raw = parseScore(comp.score);
-  if (raw !== null && raw < 0) return raw; // negative = definitely under par
-  // Don't return positive values — could be total strokes
-
-  return null;
-}
 
 export async function fetchMastersLeaderboard(
   eventId?: string | null
@@ -243,71 +80,79 @@ export async function fetchMastersLeaderboard(
       return { entries: [], eventId, error: `ESPN returned 0 competitors for event ${eventId}` };
     }
 
-    // Log first competitor's score fields for debugging
-    if (competitors[0]) {
-      const c0 = competitors[0] as Record<string, unknown>;
-      const athlete = c0.athlete as Record<string, unknown> | undefined;
-      console.log(`ESPN sample [${athlete?.displayName}]: score=${JSON.stringify(c0.score)}, toPar=${c0.toPar}, linescores=${JSON.stringify(c0.linescores)}, sortOrder=${c0.sortOrder}, status.thru=${(c0.status as Record<string, unknown>)?.thru}`);
-    }
+    const entries: LeaderboardEntry[] = competitors
+      .map((comp) => {
+        const athlete = (comp.athlete || {}) as Record<string, unknown>;
+        const status = comp.status as Record<string, unknown> | undefined;
+        const typeObj = (status?.type as Record<string, unknown> | undefined);
+        const positionObj = (status?.position as Record<string, unknown> | undefined);
+        const linescores = (comp.linescores as Array<Record<string, unknown>>) || [];
+        const statistics = (comp.statistics as Array<Record<string, unknown>>) || [];
 
-    const rawEntries: Array<LeaderboardEntry & { _sortOrder: number }> = [];
+        const name = String(
+          athlete.displayName || athlete.fullName || athlete.shortName || ""
+        );
+        if (!name) return null;
 
-    for (const comp of competitors) {
-      const athlete = (comp.athlete || {}) as Record<string, unknown>;
-      const linescores: Array<Record<string, unknown>> =
-        (comp.linescores as Array<Record<string, unknown>>) || [];
+        // Status: check type name/id
+        const typeName = ((typeObj?.name as string) || "").toUpperCase();
+        const typeId = typeObj?.id as string | undefined;
+        const statusVal = (status?.displayValue as string || "").toLowerCase();
+        let espnStatus: ESPNStatus = "active";
+        if (typeId === "2" || typeName.includes("CUT") || statusVal.includes("cut")) espnStatus = "cut";
+        else if (typeId === "3" || typeId === "6" || typeName.includes("WITHDRAWN") || statusVal.includes("wd")) espnStatus = "wd";
+        else if (typeId === "7" || typeName.includes("DISQUALIF") || statusVal === "dq") espnStatus = "dq";
 
-      const status = parseStatus(comp);
-      const started = status !== "active" || hasPlayerStarted(comp, linescores);
-      const sortOrder = Number(comp.sortOrder ?? comp.order ?? 9999);
-      const thru = parseThruDisplay(comp);
-      const overallScore = started ? computeRelativeScore(comp, linescores) : null;
+        // Thru holes — directly from status.thru
+        const thruNum = status?.thru as number | undefined;
+        const isFinishedRound = typeName.includes("PLAY_COMPLETE") || typeName.includes("FINAL");
+        let thru = "-";
+        if (isFinishedRound) thru = "F";
+        else if (thruNum !== undefined && thruNum > 0) thru = String(thruNum);
 
-      const rounds = linescores.map((ls) => {
-        const v = ls.displayValue ?? ls.value;
-        return v !== undefined ? String(v) : undefined;
+        // Has player started? thru > 0 or round complete
+        const hasStarted = espnStatus !== "active"
+          || (thruNum !== undefined && thruNum > 0)
+          || isFinishedRound;
+
+        // Score relative to par: read from statistics.scoreToPar
+        const scoreToParStat = statistics.find((s) => s.name === "scoreToPar");
+        const score: number | null = hasStarted
+          ? parseScore(scoreToParStat?.value ?? scoreToParStat?.displayValue)
+          : null;
+
+        // Position: read directly from status.position.displayName ("T9", "1", "CUT", etc.)
+        const position = positionObj?.displayName as string | undefined
+          || String(comp.sortOrder ?? 9999);
+
+        // Round scores from linescores displayValue ("-1", "E", "+3")
+        // Only include rounds that have a real displayValue (not just tee time placeholders)
+        const rounds = linescores
+          .filter((ls) => ls.displayValue !== undefined && ls.displayValue !== null)
+          .map((ls) => ls.displayValue as string);
+
+        return {
+          id: String(athlete.id || comp.id || ""),
+          name,
+          position: espnStatus === "cut" ? "CUT"
+            : espnStatus === "wd" ? "WD"
+            : espnStatus === "dq" ? "DQ"
+            : (position || String(comp.sortOrder ?? "-")),
+          score,
+          scoreDisplay: formatScore(score),
+          thru,
+          status: espnStatus,
+          round1: rounds[0],
+          round2: rounds[1],
+          round3: rounds[2],
+          round4: rounds[3],
+        } as LeaderboardEntry;
+      })
+      .filter((e): e is LeaderboardEntry => e !== null)
+      .sort((a, b) => {
+        // Sort by sortOrder from original array (preserved via closure below)
+        return 0; // ESPN already returns in order
       });
-
-      const name = String(
-        athlete.displayName || athlete.fullName || athlete.shortName || ""
-      );
-      if (!name) continue;
-
-      rawEntries.push({
-        id: String(athlete.id || comp.id || ""),
-        name,
-        position: String(sortOrder),
-        _sortOrder: sortOrder,
-        score: overallScore,
-        scoreDisplay: formatScore(overallScore),
-        thru,
-        status,
-        round1: rounds[0] as string | undefined,
-        round2: rounds[1] as string | undefined,
-        round3: rounds[2] as string | undefined,
-        round4: rounds[3] as string | undefined,
-      });
-    }
-
-    // Detect ties from ESPN's sortOrder
-    const sortOrderCounts = new Map<number, number>();
-    for (const e of rawEntries) {
-      if (e.status === "active") {
-        sortOrderCounts.set(e._sortOrder, (sortOrderCounts.get(e._sortOrder) || 0) + 1);
-      }
-    }
-
-    for (const e of rawEntries) {
-      if (e.status === "cut") { e.position = "CUT"; continue; }
-      if (e.status === "wd") { e.position = "WD"; continue; }
-      if (e.status === "dq") { e.position = "DQ"; continue; }
-      const count = sortOrderCounts.get(e._sortOrder) || 1;
-      e.position = count > 1 ? `T${e._sortOrder}` : String(e._sortOrder);
-    }
-
-    const entries: LeaderboardEntry[] = rawEntries
-      .sort((a, b) => a._sortOrder - b._sortOrder)
-      .map(({ _sortOrder: _, ...rest }) => rest as LeaderboardEntry);
 
     return { entries, eventId };
   } catch (err) {
