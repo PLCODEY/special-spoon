@@ -148,7 +148,7 @@ function computeRelativeScore(
 
   // 3. Compute from linescores using Augusta par table
   if (linescores.length > 0) {
-    const thruHoles = parseThruNumber(comp); // holes played in current round
+    const thruHoles = parseThruNumber(comp); // holes played in current (last) round
     let total = 0;
     let valid = true;
 
@@ -156,28 +156,23 @@ function computeRelativeScore(
       const ls = linescores[i];
       const dv = String(ls.displayValue ?? ls.value ?? "").trim();
 
-      // If displayValue looks like relative (E, -4, +2), use directly
-      if (dv === "E" || /^[+-]\d+$/.test(dv)) {
-        total += parseScore(dv) ?? 0;
-        continue;
-      }
+      // displayValue explicitly formatted as relative (E, -4, +2) — use directly
+      if (dv === "E") { /* total += 0 */ continue; }
+      if (/^[+-]\d+$/.test(dv)) { total += parseScore(dv) ?? 0; continue; }
 
       const v = parseScore(ls.value ?? ls.displayValue);
       if (v === null) { valid = false; break; }
 
-      // Small values (< 20) — relative to par
-      if (v < 20 && v > -20) {
-        total += v;
-        continue;
-      }
+      // Negative value = definitely relative to par
+      if (v <= 0) { total += v; continue; }
 
-      // Large values — total strokes for the round
+      // Positive value = total strokes; convert using Augusta par table.
+      // (You cannot have negative or zero total strokes, so 0 = even par is handled above.)
       const isLastRound = i === linescores.length - 1;
-      const isInProgress = isLastRound && thruHoles !== null && thruHoles < 18;
+      const isInProgress = isLastRound && thruHoles !== null && thruHoles > 0 && thruHoles < 18;
 
-      if (isInProgress && thruHoles !== null && thruHoles > 0) {
-        // Use Augusta par for the holes played
-        total += v - parThruHole(thruHoles);
+      if (isInProgress) {
+        total += v - parThruHole(thruHoles!);
       } else {
         // Complete 18-hole round
         total += v - ROUND_PAR;
