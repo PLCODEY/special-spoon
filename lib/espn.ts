@@ -9,6 +9,15 @@ const ESPN_HEADERS = {
   Accept: "application/json",
 };
 
+// Augusta National par by hole (18 holes, par 72)
+const HOLE_PARS = [4, 5, 4, 3, 4, 3, 4, 5, 4, 4, 4, 3, 5, 4, 5, 3, 4, 4];
+const ROUND_PAR = 72;
+
+// Cumulative par through hole N (1-indexed)
+function parThruHole(hole: number): number {
+  return HOLE_PARS.slice(0, Math.min(hole, 18)).reduce((a, b) => a + b, 0);
+}
+
 function parseScore(val: unknown): number | null {
   if (val === null || val === undefined) return null;
   if (typeof val === "object") {
@@ -44,28 +53,38 @@ function parseStatus(comp: Record<string, unknown>): ESPNStatus {
   return "active";
 }
 
-function parseThru(comp: Record<string, unknown>): string {
+function parseThruNumber(comp: Record<string, unknown>): number | null {
   const status = comp.status as Record<string, unknown> | undefined;
-  if (!status) return "-";
+  if (!status) return null;
 
   if (status.thru !== undefined && status.thru !== null) {
-    const t = String(status.thru).trim();
-    if (t !== "" && t !== "0") return t;
+    const n = Number(status.thru);
+    if (!isNaN(n)) return n;
   }
 
   const typeObj = status.type as Record<string, unknown> | undefined;
   const shortDetail = (typeObj?.shortDetail as string) || "";
-  if (shortDetail) {
-    if (shortDetail.toUpperCase() === "F") return "F";
-    const m = shortDetail.match(/thru\s*(\d+)/i);
-    if (m) return m[1];
-    if (/^\d+/.test(shortDetail)) return shortDetail.replace(/\*/g, "");
-  }
+  if (shortDetail.toUpperCase() === "F") return 18;
+  const m = shortDetail.match(/thru\s*(\d+)/i);
+  if (m) return parseInt(m[1], 10);
+  if (/^\d+/.test(shortDetail)) return parseInt(shortDetail, 10);
 
   const typeName = (typeObj?.name as string) || "";
-  if (typeName.includes("PLAY_COMPLETE") || typeName.includes("COMPLETE")) return "F";
+  if (typeName.includes("PLAY_COMPLETE")) return 18;
 
-  // Don't fall back to "R1" etc — use "-" if unknown
+  return null;
+}
+
+function parseThruDisplay(comp: Record<string, unknown>): string {
+  const n = parseThruNumber(comp);
+  if (n === 18) return "F";
+  if (n !== null && n > 0) return String(n);
+
+  const status = comp.status as Record<string, unknown> | undefined;
+  const typeObj = (status?.type as Record<string, unknown> | undefined);
+  const typeName = (typeObj?.name as string) || "";
+  if (typeName.includes("PLAY_COMPLETE")) return "F";
+
   return "-";
 }
 
@@ -73,40 +92,38 @@ function hasPlayerStarted(
   comp: Record<string, unknown>,
   linescores: Array<Record<string, unknown>>
 ): boolean {
-  const thru = parseThru(comp);
-  if (thru !== "-" && thru !== "F") return true; // has a hole count
-  if (thru === "F") return true; // finished a round
+  const n = parseThruNumber(comp);
+  if (n !== null && n > 0) return true;
 
-  // Check status type name
   const statusObj = comp.status as Record<string, unknown> | undefined;
-  const typeObj = statusObj?.type as Record<string, unknown> | undefined;
+  const typeObj = (statusObj?.type as Record<string, unknown> | undefined);
   const typeName = ((typeObj?.name as string) || "").toUpperCase();
   if (typeName.includes("SCHEDULED") || typeName.includes("PRE_PLAY")) return false;
   if (typeName.includes("IN_PROGRESS") || typeName.includes("PLAY_COMPLETE")) return true;
 
-  // If linescores has any non-zero value, player has started
-  if (linescores.length > 0) {
-    const anyNonZero = linescores.some((ls) => {
-      const v = parseScore(ls.value ?? ls.displayValue);
-      return v !== null && v !== 0;
-    });
-    if (anyNonZero) return true;
-  }
-
-  return false;
+  // Check for any non-zero linescore
+  return linescores.some((ls) => {
+    const v = parseScore(ls.value ?? ls.displayValue);
+    return v !== null && v !== 0;
+  });
 }
 
 /**
- * Attempt to get tournament score relative to par.
- * ESPN sometimes returns total strokes in comp.score — try to find the
- * relative-to-par value from other fields first.
+ * Compute tournament score relative to par.
+ *
+ * ESPN's comp.score contains total strokes played (not relative to par).
+ * linescores[n] represents each round:
+ *   - Completed rounds: total strokes for 18 holes (e.g. 68)
+ *   - In-progress round: total strokes for holes played so far (e.g. 25 thru 7 holes)
+ *
+ * We convert to relative using Augusta par (72 per round, or cumulative par thru N holes).
  */
-function getRelativeScore(
+function computeRelativeScore(
   comp: Record<string, unknown>,
   linescores: Array<Record<string, unknown>>
 ): number | null {
-  // 1. Try explicit relative-to-par fields (some ESPN endpoints provide these)
-  for (const field of ["toPar", "overallToPar", "displayScore", "scoreRelativeToPar"]) {
+  // 1. Try explicit relative-to-par fields first
+  for (const field of ["toPar", "overallToPar", "scoreRelativeToPar"]) {
     const v = comp[field];
     if (v !== null && v !== undefined) {
       const s = parseScore(v);
@@ -114,17 +131,14 @@ function getRelativeScore(
     }
   }
 
-  // 2. If comp.score is an object, check its displayValue for a relative-looking string
+  // 2. If comp.score (as object or string) looks like a relative-to-par string
   const scoreObj = comp.score as Record<string, unknown> | undefined;
   if (typeof scoreObj === "object" && scoreObj !== null) {
     const dv = scoreObj.displayValue as string | undefined;
-    // Relative-to-par strings: "E", "-7", "+3" (never look like "17" or "68")
     if (dv && (dv === "E" || /^[+-]\d+$/.test(dv))) {
       return parseScore(dv);
     }
   }
-
-  // 3. If comp.score is a string that looks like relative-to-par, use it
   if (typeof comp.score === "string") {
     const s = comp.score.trim();
     if (s === "E" || /^[+-]\d+$/.test(s)) {
@@ -132,31 +146,51 @@ function getRelativeScore(
     }
   }
 
-  // 4. Sum linescores IF they all look like relative-to-par (small, or "E"/"+"/"-")
+  // 3. Compute from linescores using Augusta par table
   if (linescores.length > 0) {
-    let sum = 0;
+    const thruHoles = parseThruNumber(comp); // holes played in current round
+    let total = 0;
     let valid = true;
-    let anyRelative = false;
-    for (const ls of linescores) {
+
+    for (let i = 0; i < linescores.length; i++) {
+      const ls = linescores[i];
       const dv = String(ls.displayValue ?? ls.value ?? "").trim();
-      // Total-strokes values for 18 holes are 60-90; relative are -15 to +20
-      const v = parseScore(dv === "E" ? 0 : dv);
+
+      // If displayValue looks like relative (E, -4, +2), use directly
+      if (dv === "E" || /^[+-]\d+$/.test(dv)) {
+        total += parseScore(dv) ?? 0;
+        continue;
+      }
+
+      const v = parseScore(ls.value ?? ls.displayValue);
       if (v === null) { valid = false; break; }
-      if (v < 0 || dv === "E") anyRelative = true; // negative = definitely relative
-      if (v > 50) { valid = false; break; } // definitely total strokes for a round
-      sum += v;
+
+      // Small values (< 20) — relative to par
+      if (v < 20 && v > -20) {
+        total += v;
+        continue;
+      }
+
+      // Large values — total strokes for the round
+      const isLastRound = i === linescores.length - 1;
+      const isInProgress = isLastRound && thruHoles !== null && thruHoles < 18;
+
+      if (isInProgress && thruHoles !== null && thruHoles > 0) {
+        // Use Augusta par for the holes played
+        total += v - parThruHole(thruHoles);
+      } else {
+        // Complete 18-hole round
+        total += v - ROUND_PAR;
+      }
     }
-    if (valid && anyRelative) return sum;
-    // If all linescores are small non-negative, could be relative (+3, +2) — use if sum <= 20
-    if (valid && Math.abs(sum) <= 20) return sum;
+
+    if (valid) return total;
   }
 
-  // 5. comp.score as a number: if it's in a plausible relative-score range use it
+  // 4. Raw comp.score fallback — only use if it looks like relative to par
   const raw = parseScore(comp.score);
-  if (raw !== null && raw < 0) return raw; // negative = definitely under par, use it
-  // Positive values are ambiguous (could be total strokes or over par)
-  // For values > 20, assume total strokes and return null
-  if (raw !== null && raw <= 20) return raw;
+  if (raw !== null && raw < 0) return raw; // negative = definitely under par
+  // Don't return positive values — could be total strokes
 
   return null;
 }
@@ -214,9 +248,13 @@ export async function fetchMastersLeaderboard(
       return { entries: [], eventId, error: `ESPN returned 0 competitors for event ${eventId}` };
     }
 
-    console.log(`ESPN: ${competitors.length} competitors for event ${eventId}`);
+    // Log first competitor's score fields for debugging
+    if (competitors[0]) {
+      const c0 = competitors[0] as Record<string, unknown>;
+      const athlete = c0.athlete as Record<string, unknown> | undefined;
+      console.log(`ESPN sample [${athlete?.displayName}]: score=${JSON.stringify(c0.score)}, toPar=${c0.toPar}, linescores=${JSON.stringify(c0.linescores)}, sortOrder=${c0.sortOrder}, status.thru=${(c0.status as Record<string, unknown>)?.thru}`);
+    }
 
-    // First pass: collect raw data with ESPN's sortOrder
     const rawEntries: Array<LeaderboardEntry & { _sortOrder: number }> = [];
 
     for (const comp of competitors) {
@@ -227,10 +265,8 @@ export async function fetchMastersLeaderboard(
       const status = parseStatus(comp);
       const started = status !== "active" || hasPlayerStarted(comp, linescores);
       const sortOrder = Number(comp.sortOrder ?? comp.order ?? 9999);
-      const thru = parseThru(comp);
-
-      // Score: only meaningful if player has started
-      const overallScore = started ? getRelativeScore(comp, linescores) : null;
+      const thru = parseThruDisplay(comp);
+      const overallScore = started ? computeRelativeScore(comp, linescores) : null;
 
       const rounds = linescores.map((ls) => {
         const v = ls.displayValue ?? ls.value;
@@ -245,7 +281,7 @@ export async function fetchMastersLeaderboard(
       rawEntries.push({
         id: String(athlete.id || comp.id || ""),
         name,
-        position: String(sortOrder), // will be updated below
+        position: String(sortOrder),
         _sortOrder: sortOrder,
         score: overallScore,
         scoreDisplay: formatScore(overallScore),
@@ -258,8 +294,7 @@ export async function fetchMastersLeaderboard(
       });
     }
 
-    // Compute positions using ESPN's sortOrder with tie detection
-    // Group by sortOrder to detect ties
+    // Detect ties from ESPN's sortOrder
     const sortOrderCounts = new Map<number, number>();
     for (const e of rawEntries) {
       if (e.status === "active") {
