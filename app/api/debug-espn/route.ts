@@ -66,8 +66,8 @@ export async function GET() {
         const d = await r.json();
         const comps = d?.events?.[0]?.competitions?.[0]?.competitors || [];
         totalCompetitors = comps.length;
-        // Return first competitor's full raw data for inspection
-        sampleCompetitor = comps[0] || null;
+        // Return first 3 competitors' raw data for inspection
+        sampleCompetitor = comps.slice(0, 3);
       } else {
         lbError = await r.text().catch(() => "").then((t) => t.slice(0, 500));
       }
