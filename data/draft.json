@@ -24,6 +24,21 @@
     {"pickNumber":22,"drafter":"Jack","golferId":"russell-henley","golferName":"Russell Henley","timestamp":"2026-04-08T04:46:16.700Z"},
     {"pickNumber":23,"drafter":"Wilson","golferId":"shane-lowry","golferName":"Shane Lowry","timestamp":"2026-04-08T05:00:00.000Z"},
     {"pickNumber":24,"drafter":"Henry","golferId":"jj-spaun","golferName":"J.J. Spaun","timestamp":"2026-04-08T05:00:10.000Z"},
-    {"pickNumber":25,"drafter":"Chris","golferId":"jake-knapp","golferName":"Jake Knapp","timestamp":"2026-04-08T05:00:20.000Z"}
+    {"pickNumber":25,"drafter":"Chris","golferId":"jake-knapp","golferName":"Jake Knapp","timestamp":"2026-04-08T05:00:20.000Z"},
+    {"pickNumber":26,"drafter":"Vic","golferId":"jordan-spieth","golferName":"Jordan Spieth","timestamp":"2026-04-08T15:24:31.104Z"},
+    {"pickNumber":27,"drafter":"Shaun","golferId":"nicolai-hojgaard","golferName":"Nicolai Højgaard","timestamp":"2026-04-08T15:25:45.375Z"},
+    {"pickNumber":28,"drafter":"Miky","golferId":"max-homa","golferName":"Max Homa","timestamp":"2026-04-08T15:25:58.687Z"},
+    {"pickNumber":29,"drafter":"Tony","golferId":"adam-scott","golferName":"Adam Scott","timestamp":"2026-04-08T15:26:31.406Z"},
+    {"pickNumber":30,"drafter":"Jason","golferId":"patrick-cantlay","golferName":"Patrick Cantlay","timestamp":"2026-04-08T15:26:45.289Z"},
+    {"pickNumber":31,"drafter":"Jason","golferId":"jacob-bridgeman","golferName":"Jacob Bridgeman","timestamp":"2026-04-08T15:26:57.923Z"},
+    {"pickNumber":32,"drafter":"Tony","golferId":"corey-conners","golferName":"Corey Conners","timestamp":"2026-04-08T15:27:17.912Z"},
+    {"pickNumber":33,"drafter":"Miky","golferId":"jason-day","golferName":"Jason Day","timestamp":"2026-04-08T15:27:28.743Z"},
+    {"pickNumber":34,"drafter":"Shaun","golferId":"chris-gotterup","golferName":"Chris Gotterup","timestamp":"2026-04-08T18:10:29.816Z"},
+    {"pickNumber":35,"drafter":"Vic","golferId":"cameron-smith","golferName":"Cameron Smith","timestamp":"2026-04-08T23:16:37.111Z"},
+    {"pickNumber":36,"drafter":"Chris","golferId":"sam-burns","golferName":"Sam Burns","timestamp":"2026-04-09T00:04:18.764Z"},
+    {"pickNumber":37,"drafter":"Henry","golferId":"sepp-straka","golferName":"Sepp Straka","timestamp":"2026-04-09T00:13:20.747Z"},
+    {"pickNumber":38,"drafter":"Wilson","golferId":"gary-woodland","golferName":"Gary Woodland","timestamp":"2026-04-09T02:47:21.318Z"},
+    {"pickNumber":39,"drafter":"Jack","golferId":"maverick-mcnealy","golferName":"Maverick McNealy","timestamp":"2026-04-09T03:16:23.076Z"},
+    {"pickNumber":40,"drafter":"Paul","golferId":"daniel-berger","golferName":"Daniel Berger","timestamp":"2026-04-09T03:39:54.286Z"}
   ]
 }
