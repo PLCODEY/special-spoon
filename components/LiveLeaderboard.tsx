@@ -39,6 +39,18 @@ export default function LiveLeaderboard({
     draftedNames.map((n) => n.toLowerCase().trim())
   );
 
+  const sorted = [...entries].sort((a, b) => {
+    // cut/wd/dq go to bottom
+    const aOut = a.status === "cut" || a.status === "wd" || a.status === "dq";
+    const bOut = b.status === "cut" || b.status === "wd" || b.status === "dq";
+    if (aOut !== bOut) return aOut ? 1 : -1;
+    // not-yet-started (score null) below active players
+    if (a.score === null && b.score !== null) return 1;
+    if (a.score !== null && b.score === null) return -1;
+    if (a.score === null && b.score === null) return 0;
+    return (a.score as number) - (b.score as number);
+  });
+
   return (
     <div>
       {lastUpdated && (
@@ -61,7 +73,7 @@ export default function LiveLeaderboard({
             </tr>
           </thead>
           <tbody>
-            {entries.map((entry, i) => {
+            {sorted.map((entry, i) => {
               const isDrafted = normalizedDrafted.has(
                 entry.name.toLowerCase().trim()
               );
