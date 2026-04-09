@@ -99,7 +99,7 @@ export async function fetchMastersLeaderboard(
         const typeId = typeObj?.id as string | undefined;
         const statusVal = (status?.displayValue as string || "").toLowerCase();
         let espnStatus: ESPNStatus = "active";
-        if (typeId === "2" || typeName.includes("CUT") || statusVal.includes("cut")) espnStatus = "cut";
+        if (typeName === "MISSED_CUT" || statusVal === "cut" || statusVal === "missed cut") espnStatus = "cut";
         else if (typeId === "3" || typeId === "6" || typeName.includes("WITHDRAWN") || statusVal.includes("wd")) espnStatus = "wd";
         else if (typeId === "7" || typeName.includes("DISQUALIF") || statusVal === "dq") espnStatus = "dq";
 
