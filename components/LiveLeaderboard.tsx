@@ -6,12 +6,14 @@ interface Props {
   entries: LeaderboardEntry[];
   draftedNames: string[];
   lastUpdated: Date | null;
+  error?: string | null;
 }
 
 export default function LiveLeaderboard({
   entries,
   draftedNames,
   lastUpdated,
+  error,
 }: Props) {
   if (entries.length === 0) {
     return (
@@ -20,9 +22,15 @@ export default function LiveLeaderboard({
         <div className="text-lg font-medium text-gray-400">
           Leaderboard not yet available
         </div>
-        <div className="text-sm mt-1">
-          Scores will appear here once the tournament begins
-        </div>
+        {error ? (
+          <div className="text-xs mt-2 text-red-400 max-w-md mx-auto break-all">
+            ESPN error: {error}
+          </div>
+        ) : (
+          <div className="text-sm mt-1">
+            Scores will appear here once the tournament begins
+          </div>
+        )}
       </div>
     );
   }

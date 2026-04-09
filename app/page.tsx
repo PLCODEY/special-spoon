@@ -275,6 +275,7 @@ export default function Home() {
               entries={leaderboard}
               draftedNames={picks.map((p) => p.golferName)}
               lastUpdated={lastUpdated}
+              error={leaderboardData?.error}
             />
           </section>
         )}

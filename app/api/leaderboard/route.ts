@@ -17,7 +17,7 @@ function writeConfig(config: Config) {
 export async function GET() {
   try {
     const config = readConfig();
-    const { entries, eventId } = await fetchMastersLeaderboard(
+    const { entries, eventId, error } = await fetchMastersLeaderboard(
       config.espnEventId
     );
 
@@ -27,10 +27,11 @@ export async function GET() {
       writeConfig(config);
     }
 
-    return NextResponse.json({ entries, eventId });
-  } catch {
+    return NextResponse.json({ entries, eventId, error: error || null });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "Failed to fetch leaderboard", entries: [], eventId: null },
+      { error: msg, entries: [], eventId: null },
       { status: 500 }
     );
   }
