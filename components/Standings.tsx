@@ -1,6 +1,6 @@
 "use client";
 import { TeamResult } from "@/lib/types";
-import { formatScore } from "@/lib/scoring";
+import { formatCombinedScore } from "@/lib/scoring";
 
 interface Props {
   standings: TeamResult[];
@@ -79,13 +79,13 @@ export default function Standings({ standings, hasLiveData }: Props) {
               ) : team.combinedScore !== null ? (
                 <div>
                   <div className="text-white font-bold text-xl flex items-center gap-2 justify-end">
-                    {formatScore(team.combinedScore)}
+                    {formatCombinedScore(team.combinedScore)}
                     {team.leaderBonus && (
                       <span className="text-yellow-400 text-sm font-bold animate-pulse">🏆 -10</span>
                     )}
                   </div>
                   <div className="text-gray-400 text-xs">
-                    combined (best 2){team.leaderBonus ? " + leader bonus" : ""}
+                    pos sum (best 2){team.leaderBonus ? " − 10 leader bonus" : ""}
                   </div>
                 </div>
               ) : (

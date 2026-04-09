@@ -3,8 +3,16 @@ import { getTeamPicks } from "./draft";
 
 const LEADER_BONUS = -10;
 
+// Extract numeric rank from position string ("T8" → 8, "1" → 1, "T1" → 1)
+function positionToNumber(position: string | undefined): number {
+  if (!position || position === "-" || position === "CUT" || position === "WD" || position === "DQ") {
+    return Infinity;
+  }
+  const n = parseInt(position.replace(/^T/, ""), 10);
+  return isNaN(n) ? Infinity : n;
+}
+
 function isLeader(position: string): boolean {
-  // Matches "1" or "T1" (sole leader or tied for first)
   return position === "1" || position === "T1";
 }
 
@@ -60,9 +68,12 @@ export function calculateStandings(
       };
     }
 
-    const active = madecut.filter((g) => g.liveData?.score !== null);
-    const sorted = [...active].sort(
-      (a, b) => (a.liveData!.score ?? 0) - (b.liveData!.score ?? 0)
+    // Best 2 = golfers with the lowest position number (best rank) who have started
+    const withPositions = madecut.filter(
+      (g) => g.liveData && positionToNumber(g.liveData.position) !== Infinity
+    );
+    const sorted = [...withPositions].sort(
+      (a, b) => positionToNumber(a.liveData!.position) - positionToNumber(b.liveData!.position)
     );
     const best2 = sorted.slice(0, 2);
 
@@ -71,9 +82,10 @@ export function calculateStandings(
       (g) => g.liveData && isLeader(g.liveData.position)
     );
 
+    // Combined score = sum of best 2 position numbers (lower is better)
     let combinedScore =
       best2.length === 2
-        ? best2.reduce((sum, g) => sum + (g.liveData?.score ?? 0), 0)
+        ? best2.reduce((sum, g) => sum + positionToNumber(g.liveData!.position), 0)
         : null;
 
     // Apply -10 leader bonus
@@ -91,7 +103,7 @@ export function calculateStandings(
     };
   });
 
-  // Rank: non-eliminated first sorted by combinedScore, then eliminated
+  // Rank: non-eliminated first sorted by combinedScore ascending (lower = better)
   const active = results
     .filter((r) => !r.eliminated && r.combinedScore !== null)
     .sort((a, b) => (a.combinedScore ?? 0) - (b.combinedScore ?? 0));
@@ -119,6 +131,12 @@ export function formatScore(score: number | null): string {
   if (score === null) return "-";
   if (score === 0) return "E";
   return score > 0 ? `+${score}` : `${score}`;
+}
+
+// Format a position-based combined score (no "E" or "+" — just the number)
+export function formatCombinedScore(score: number | null): string {
+  if (score === null) return "-";
+  return String(score);
 }
 
 function normalizeGolferName(name: string): string {
