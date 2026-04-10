@@ -105,20 +105,23 @@ export async function fetchMastersLeaderboard(
 
         // Thru holes — directly from status.thru
         const thruNum = status?.thru as number | undefined;
-        const isFinishedRound = typeName.includes("PLAY_COMPLETE") || typeName.includes("FINAL");
+        const isFinishedRound = typeName.includes("PLAY_COMPLETE") || typeName.includes("FINAL")
+          || typeName === "MADE_CUT" || typeName === "ROUND_COMPLETE";
         let thru = "-";
         if (isFinishedRound) thru = "F";
         else if (thruNum !== undefined && thruNum > 0) thru = String(thruNum);
 
-        // Has player started? thru > 0 or round complete
-        const hasStarted = espnStatus !== "active"
+        // Score relative to par: read from statistics.scoreToPar
+        // If ESPN has populated this stat, the player has started — trust the value directly.
+        const scoreToParStat = statistics.find((s) => s.name === "scoreToPar");
+        const rawScoreVal = scoreToParStat?.value ?? scoreToParStat?.displayValue;
+        const hasKnownScore = rawScoreVal !== undefined && rawScoreVal !== null && rawScoreVal !== "";
+        const hasStarted = hasKnownScore
+          || espnStatus !== "active"
           || (thruNum !== undefined && thruNum > 0)
           || isFinishedRound;
-
-        // Score relative to par: read from statistics.scoreToPar
-        const scoreToParStat = statistics.find((s) => s.name === "scoreToPar");
         const score: number | null = hasStarted
-          ? parseScore(scoreToParStat?.value ?? scoreToParStat?.displayValue)
+          ? parseScore(rawScoreVal)
           : null;
 
         // Position: read directly from status.position.displayName ("T9", "1", "CUT", etc.)
