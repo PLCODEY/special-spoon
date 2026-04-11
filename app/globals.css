@@ -19,8 +19,41 @@
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes finishHim {
+  0%   { opacity: 0; letter-spacing: 0.3em; text-shadow: 0 0 40px #ff0000; }
+  15%  { opacity: 1; letter-spacing: 0.15em; text-shadow: 0 0 20px #ff4400, 0 0 60px #ff0000; }
+  80%  { opacity: 1; letter-spacing: 0.15em; text-shadow: 0 0 20px #ff4400, 0 0 60px #ff0000; }
+  100% { opacity: 0.7; letter-spacing: 0.15em; text-shadow: 0 0 10px #ff0000; }
 }
+
+@keyframes bloodDrip {
+  0%   { transform: scaleY(0); opacity: 0; }
+  30%  { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes mkFlicker {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.85; }
+}
+
+.finish-him-text {
+  animation: finishHim 1.2s ease-out forwards;
+  font-family: 'Impact', 'Arial Black', sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.15em;
+  color: #ff2200;
+  text-transform: uppercase;
+}
+
+.finish-him-sub {
+  animation: mkFlicker 1.5s ease-in-out infinite;
+}
+
+.finish-him-bar {
+  transform-origin: top;
+  animation: bloodDrip 0.6s ease-out 0.3s forwards;
+  opacity: 0;
+}
+

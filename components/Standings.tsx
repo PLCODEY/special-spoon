@@ -49,10 +49,25 @@ export default function Standings({ standings, hasLiveData }: Props) {
               : "bg-gray-800 border-gray-700"
           }`}
         >
+          {team.eliminated && (
+            <div className="relative mb-3 rounded-lg overflow-hidden bg-black border border-red-900/60 py-3 px-4 text-center">
+              {/* blood bar top */}
+              <div className="finish-him-bar absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-700 to-transparent" />
+              <div className="finish-him-text text-2xl tracking-widest drop-shadow-lg">
+                Finish Him!
+              </div>
+              <div className="finish-him-sub text-red-600 text-xs mt-1 tracking-widest uppercase font-bold">
+                {team.eliminationReason}
+              </div>
+              {/* blood bar bottom */}
+              <div className="finish-him-bar absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-700 to-transparent" />
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               {team.eliminated ? (
-                <span className="text-red-500 font-bold text-lg">X</span>
+                <span className="text-red-500 font-bold text-lg">☠</span>
               ) : team.rank ? (
                 <span
                   className={`font-bold text-xl ${
@@ -67,11 +82,6 @@ export default function Standings({ standings, hasLiveData }: Props) {
               <span className="text-white font-bold text-lg">
                 {team.drafter}
               </span>
-              {team.eliminated && (
-                <span className="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded-full">
-                  ELIMINATED
-                </span>
-              )}
             </div>
             <div className="text-right">
               {team.eliminated ? (
