@@ -3,6 +3,12 @@ export interface PersonalInfo {
   lifeExpectancy: number;
   annualExpensesNow: number;
   inflationRate: number; // e.g. 0.03
+  annualHealthcareCostNow: number; // out-of-pocket pre-retirement
+  annualHealthcareCostRetirement: number; // Medicare + supplement + OOP
+  healthcareInflation: number; // medical inflation typically higher, e.g. 0.05
+  longTermCareAge: number; // age LTC costs might begin
+  annualLongTermCareCost: number; // nursing home / memory care
+  longTermCareDuration: number; // years of LTC needed
 }
 
 export interface LiquidAccount {
@@ -304,6 +310,153 @@ export function recommendRetirementAge(scenarios: NetWorthBreakdown[]): {
   const comfortable = sustainable.find(s => s.sustainabilityRatio >= 1.25)?.retirementAge ?? sustainable[sustainable.length - 1].retirementAge;
   const optimal = sustainable.find(s => s.sustainabilityRatio >= 1.5)?.retirementAge ?? sustainable[sustainable.length - 1].retirementAge;
   return { earliest, comfortable, optimal };
+}
+
+// ── Year-by-year projection ───────────────────────────────────────────────────
+
+export interface YearlySnapshot {
+  age: number;
+  isRetired: boolean;
+  portfolioValue: number;  // liquid investable assets (after-tax basis)
+  realEstateEquity: number;
+  illiquidValue: number;
+  totalNetWorth: number;
+  annualIncome: number;    // passive income that year
+  annualExpenses: number;  // lifestyle + healthcare + education
+  netCashFlow: number;     // income - expenses (negative = drawing down)
+  portfolioRunsOut: boolean;
+}
+
+export function projectYearByYear(
+  inputs: RetirementInputs,
+  retirementAge: number
+): YearlySnapshot[] {
+  const { personal } = inputs;
+  const snapshots: YearlySnapshot[] = [];
+
+  // Seed liquid portfolio value at current age (after-tax estimate)
+  let portfolio = inputs.liquidAccounts.reduce((sum, a) => {
+    if (a.type === "brokerage") {
+      const gain = a.currentBalance - (a.currentBalance - a.unrealizedCapitalGains);
+      return sum + a.currentBalance - gain * inputs.capitalGainsTaxRate;
+    }
+    if (a.type === "401k") return sum + a.currentBalance * (1 - inputs.federalTaxRate);
+    return sum + a.currentBalance;
+  }, 0);
+
+  // Illiquid: track each separately
+  let illiquidValues = inputs.illiquidInvestments.map(inv => inv.currentValue);
+
+  // Real estate: track equity per property
+  let reValues = inputs.realEstate.map(p => p.currentValue);
+  let reMortgages = inputs.realEstate.map(p => p.outstandingMortgage);
+
+  const portfolioReturn = inputs.liquidAccounts.length > 0
+    ? inputs.liquidAccounts.reduce((s, a) => s + a.expectedReturn * a.currentBalance, 0) /
+      Math.max(1, inputs.liquidAccounts.reduce((s, a) => s + a.currentBalance, 0))
+    : 0.06;
+
+  for (let age = personal.currentAge; age <= personal.lifeExpectancy; age++) {
+    const isRetired = age >= retirementAge;
+    const yearsIn = age - personal.currentAge;
+
+    // ── Grow portfolio ──
+    if (isRetired) {
+      portfolio *= (1 + portfolioReturn);
+    } else {
+      portfolio *= (1 + portfolioReturn);
+      // Add contributions
+      for (const acct of inputs.liquidAccounts) {
+        if (acct.type === "brokerage") portfolio += acct.annualContribution;
+        else if (acct.type === "rothIra") portfolio += acct.annualContribution;
+        else portfolio += acct.annualContribution * (1 - inputs.federalTaxRate); // after-tax equivalent
+      }
+    }
+
+    // ── Illiquid ──
+    illiquidValues = illiquidValues.map((v, i) => {
+      const inv = inputs.illiquidInvestments[i];
+      if (age >= inv.expectedLiquidationAge) {
+        // Liquidated — roll into portfolio
+        if (v > 0) portfolio += v;
+        return 0;
+      }
+      return v * (1 + inv.expectedReturn);
+    });
+
+    // ── Real estate ──
+    let reEquity = 0;
+    for (let pi = 0; pi < inputs.realEstate.length; pi++) {
+      const prop = inputs.realEstate[pi];
+      reValues[pi] *= (1 + prop.annualAppreciation);
+      const monthlyRate = prop.mortgageRate / 12;
+      const remaining = remainingMortgageBalance(
+        prop.outstandingMortgage,
+        monthlyRate,
+        prop.monthlyPayment,
+        Math.min(yearsIn * 12, prop.remainingMonths)
+      );
+      reMortgages[pi] = remaining;
+      reEquity += reValues[pi] - remaining;
+      // Rental income adds to portfolio
+      if (!prop.isPrimaryResidence && isRetired) {
+        const inflatedRent = compoundGrow(prop.annualRentalIncome, personal.inflationRate, yearsIn);
+        portfolio += inflatedRent;
+      }
+    }
+
+    // ── Passive income ──
+    let annualPassive = 0;
+    for (const stream of inputs.passiveIncome) {
+      if (age >= stream.startAge && age < stream.endAge) {
+        annualPassive += compoundGrow(stream.annualAmount, personal.inflationRate, stream.startAge - personal.currentAge + (age - stream.startAge));
+      }
+    }
+
+    // ── Expenses ──
+    const lifestyleExpenses = compoundGrow(personal.annualExpensesNow, personal.inflationRate, yearsIn);
+    const healthcareBase = isRetired ? personal.annualHealthcareCostRetirement : personal.annualHealthcareCostNow;
+    const healthcareExpenses = compoundGrow(healthcareBase, personal.healthcareInflation, yearsIn);
+    const ltcExpenses = (age >= personal.longTermCareAge && age < personal.longTermCareAge + personal.longTermCareDuration)
+      ? compoundGrow(personal.annualLongTermCareCost, personal.healthcareInflation, age - personal.currentAge)
+      : 0;
+
+    let educationExpenses = 0;
+    for (const child of inputs.children) {
+      const collegeStartYear = child.collegeStartAge - personal.currentAge;
+      const yr = yearsIn - collegeStartYear;
+      if (yr >= 0 && yr < child.yearsOfEducation) {
+        educationExpenses += child.estimatedAnnualEducationCost;
+      }
+    }
+
+    const annualExpenses = lifestyleExpenses + healthcareExpenses + ltcExpenses + educationExpenses;
+    const netCashFlow = annualPassive - annualExpenses;
+
+    if (isRetired) {
+      portfolio += netCashFlow; // draw down or passive income offsets
+    }
+
+    const portfolioRunsOut = portfolio < 0;
+    if (portfolioRunsOut) portfolio = 0;
+
+    const totalNetWorth = Math.max(0, portfolio) + reEquity + illiquidValues.reduce((a, b) => a + b, 0);
+
+    snapshots.push({
+      age,
+      isRetired,
+      portfolioValue: Math.max(0, portfolio),
+      realEstateEquity: reEquity,
+      illiquidValue: illiquidValues.reduce((a, b) => a + b, 0),
+      totalNetWorth,
+      annualIncome: annualPassive,
+      annualExpenses,
+      netCashFlow,
+      portfolioRunsOut,
+    });
+  }
+
+  return snapshots;
 }
 
 export function fmt(n: number): string {
