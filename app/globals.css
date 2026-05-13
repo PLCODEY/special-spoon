@@ -22,7 +22,7 @@
 @keyframes golferSwing {
   0%   { transform: rotate(-25deg) scale(1.1); }
   35%  { transform: rotate(20deg) scale(1.15); }
-  55%  { transform: rotate(8deg) scale(1.1); }
+  60%  { transform: rotate(8deg) scale(1.08); }
   100% { transform: rotate(0deg) scale(1); }
 }
 
@@ -33,16 +33,14 @@
   100% { transform: rotate(0deg); }
 }
 
-@keyframes ballFly {
-  0%   { cx: 30; cy: 150; opacity: 0; r: 6; }
-  5%   { opacity: 1; }
-  100% { cx: 300; cy: 60; opacity: 0; r: 3; }
+.golfer-swing {
+  animation: golferSwing 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  will-change: transform;
 }
-
-.golfer-swing { animation: golferSwing 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
-.golfer-hold  { transform: rotate(0deg) scale(1); }
-.arm-swing    { animation: armSwing 0.65s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
-.ball-fly     { animation: ballFly 0.9s ease-out 0.2s forwards; }
+.arm-swing {
+  animation: armSwing 0.65s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  will-change: transform;
+}
 
 
 @keyframes finishHim {

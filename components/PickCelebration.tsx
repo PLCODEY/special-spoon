@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 const MESSAGE_TEMPLATES = [
   (name: string) => `Ooh ${name}, now THAT'S a pick! 🔥`,
@@ -25,50 +25,48 @@ interface Props {
 }
 
 export default function PickCelebration({ pick, onDone }: Props) {
-  const [message] = useState(() => {
-    const template = MESSAGE_TEMPLATES[Math.floor(Math.random() * MESSAGE_TEMPLATES.length)];
-    return template(pick?.drafter ?? "");
-  });
-  const [phase, setPhase] = useState<"swing" | "reveal" | "out">("swing");
-
-  const dismiss = useCallback(() => {
-    setPhase("out");
-    setTimeout(onDone, 500);
-  }, [onDone]);
+  const [message, setMessage] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [showCard, setShowCard] = useState(false);
+  const [animKey, setAnimKey] = useState(0);
 
   useEffect(() => {
     if (!pick) return;
-    setPhase("swing");
-    const t1 = setTimeout(() => setPhase("reveal"), 700);
-    const t2 = setTimeout(() => dismiss(), 3500);
+    // Pick a fresh message each time
+    const template = MESSAGE_TEMPLATES[Math.floor(Math.random() * MESSAGE_TEMPLATES.length)];
+    setMessage(template(pick.drafter));
+    // Re-key the SVG so animation restarts
+    setAnimKey((k) => k + 1);
+    setVisible(true);
+    setShowCard(false);
+    const t1 = setTimeout(() => setShowCard(true), 650);
+    const t2 = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onDone, 400);
+    }, 3600);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [pick, dismiss]);
+  }, [pick, onDone]);
 
-  if (!pick) return null;
+  if (!pick && !visible) return null;
 
   return (
     <div
-      onClick={dismiss}
-      className={`fixed inset-0 z-50 flex items-center justify-center cursor-pointer transition-opacity duration-500 ${phase === "out" ? "opacity-0" : "opacity-100"}`}
+      onClick={() => { setVisible(false); setTimeout(onDone, 400); }}
+      className={`fixed inset-0 z-50 flex items-center justify-center cursor-pointer transition-opacity duration-400 ${visible ? "opacity-100" : "opacity-0"}`}
     >
-      {/* backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       <div className="relative flex flex-col items-center gap-5 px-8 max-w-sm w-full">
 
-        {/* Golfer SVG */}
-        <div className={`select-none ${phase === "swing" ? "golfer-swing" : "golfer-hold"}`} style={{ fontSize: 0 }}>
+        {/* Golfer SVG — re-keyed on each pick to restart animation cleanly */}
+        <div key={animKey} className="select-none golfer-swing" style={{ fontSize: 0 }}>
           <svg width="160" height="200" viewBox="0 0 160 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Ball that flies out */}
-            <circle className={phase === "swing" ? "ball-fly" : ""} cx="30" cy="150" r="6" fill="white" opacity="0"/>
-
             {/* Shadow */}
             <ellipse cx="80" cy="195" rx="30" ry="6" fill="black" opacity="0.3"/>
 
             {/* Legs */}
             <line x1="70" y1="145" x2="60" y2="190" stroke="#f9a8d4" strokeWidth="8" strokeLinecap="round"/>
             <line x1="90" y1="145" x2="100" y2="190" stroke="#f9a8d4" strokeWidth="8" strokeLinecap="round"/>
-            {/* Shoes */}
             <ellipse cx="58" cy="191" rx="10" ry="5" fill="#1e293b"/>
             <ellipse cx="102" cy="191" rx="10" ry="5" fill="#1e293b"/>
 
@@ -78,25 +76,20 @@ export default function PickCelebration({ pick, onDone }: Props) {
             {/* Body */}
             <rect x="62" y="90" width="36" height="38" rx="6" fill="#ec4899"/>
 
-            {/* Swing arm group — rotates from shoulder */}
-            <g className={phase === "swing" ? "arm-swing" : ""} style={{ transformOrigin: "75px 95px" }}>
-              {/* Left arm */}
+            {/* Arms + club — rotate as one group */}
+            <g className="arm-swing" style={{ transformOrigin: "75px 95px" }}>
               <line x1="75" y1="95" x2="28" y2="135" stroke="#fbbf24" strokeWidth="7" strokeLinecap="round"/>
-              {/* Right arm */}
               <line x1="95" y1="95" x2="110" y2="120" stroke="#fbbf24" strokeWidth="7" strokeLinecap="round"/>
-              {/* Club shaft */}
               <line x1="28" y1="135" x2="15" y2="160" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round"/>
-              {/* Club head */}
               <rect x="8" y="158" width="16" height="8" rx="3" fill="#64748b"/>
             </g>
 
             {/* Head */}
             <circle cx="80" cy="62" r="26" fill="#fde68a"/>
-            {/* Blonde hair — big wavy */}
+            {/* Blonde hair */}
             <ellipse cx="80" cy="42" rx="26" ry="14" fill="#fbbf24"/>
             <ellipse cx="57" cy="58" rx="10" ry="18" fill="#fbbf24"/>
             <ellipse cx="103" cy="58" rx="10" ry="18" fill="#fbbf24"/>
-            {/* Hair highlight */}
             <ellipse cx="72" cy="38" rx="8" ry="4" fill="#fde68a" opacity="0.6"/>
             {/* Visor */}
             <rect x="56" y="52" width="48" height="10" rx="5" fill="#ec4899"/>
@@ -114,8 +107,8 @@ export default function PickCelebration({ pick, onDone }: Props) {
           </svg>
         </div>
 
-        {/* Pick reveal card */}
-        <div className={`w-full text-center transition-all duration-500 ${phase === "reveal" || phase === "out" ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-6 scale-95"}`}>
+        {/* Pick card */}
+        <div className={`w-full text-center transition-all duration-500 ${showCard ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-6 scale-95"}`}>
           <div className="bg-gray-900/90 border border-green-500/50 rounded-2xl px-6 py-5 shadow-2xl ring-2 ring-green-500/20">
             <div className="text-green-400 text-xs font-bold uppercase tracking-widest mb-1">
               {pick.drafter}&apos;s pick
