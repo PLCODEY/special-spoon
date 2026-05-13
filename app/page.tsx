@@ -28,6 +28,7 @@ export default function Home() {
   const [undoing, setUndoing] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
   const [celebration, setCelebration] = useState<{ golferName: string; drafter: string } | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Draft state — initially fetched, then kept live via SSE
   const [draftData, setDraftData] = useState<DraftPayload | null>(null);
@@ -90,6 +91,25 @@ export default function Home() {
   }, []);
 
   const picks: Pick[] = draftData?.picks || [];
+
+  // Clock timer — counts up from when the current picker's turn started
+  useEffect(() => {
+    if (!draftData?.currentPicker || draftData?.draftComplete) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const lastPick = picks[picks.length - 1];
+    const startMs = lastPick ? new Date(lastPick.timestamp).getTime() : Date.now();
+    const tick = () => setElapsedSeconds(Math.floor((Date.now() - startMs) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [draftData?.currentPicker, draftData?.draftComplete, picks]);
+
+  function formatClock(s: number) {
+    const m = Math.floor(s / 60);
+    return `${m}:${String(s % 60).padStart(2, "0")}`;
+  }
   const golfers = draftData?.golfers || [];
   const currentPicker: string | null = draftData?.currentPicker || null;
   const nextPicker: string | null = draftData?.nextPicker || null;
@@ -154,10 +174,17 @@ export default function Home() {
                 />
               </h1>
               {!draftComplete && currentPicker && (
-                <div className="text-sm text-yellow-400 mt-0.5">
+                <div className="text-sm text-yellow-400 mt-0.5 flex items-center gap-2 flex-wrap">
                   On the clock: <strong>{currentPicker}</strong>
+                  <span className={`font-mono font-bold tabular-nums px-1.5 py-0.5 rounded text-xs ${
+                    elapsedSeconds >= 120 ? "bg-red-900/60 text-red-300 animate-pulse" :
+                    elapsedSeconds >= 60  ? "bg-yellow-900/60 text-yellow-300" :
+                                           "bg-green-900/60 text-green-300"
+                  }`}>
+                    {formatClock(elapsedSeconds)}
+                  </span>
                   {nextPicker && (
-                    <span className="text-gray-500 ml-2">Next: {nextPicker}</span>
+                    <span className="text-gray-500">Next: {nextPicker}</span>
                   )}
                 </div>
               )}
