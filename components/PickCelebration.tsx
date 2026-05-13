@@ -111,10 +111,10 @@ export default function PickCelebration({ pick, onDone }: Props) {
         <div className={`w-full text-center transition-all duration-500 ${showCard ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-6 scale-95"}`}>
           <div className="bg-gray-900/90 border border-green-500/50 rounded-2xl px-6 py-5 shadow-2xl ring-2 ring-green-500/20">
             <div className="text-green-400 text-xs font-bold uppercase tracking-widest mb-1">
-              {pick.drafter}&apos;s pick
+              {pick?.drafter}&apos;s pick
             </div>
             <div className="text-white text-2xl font-bold mb-3">
-              {pick.golferName}
+              {pick?.golferName}
             </div>
             <div className="text-yellow-300 text-base italic font-medium">
               {message}
