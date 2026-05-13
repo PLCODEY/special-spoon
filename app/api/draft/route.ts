@@ -10,6 +10,11 @@ const configPath = path.join(process.cwd(), "data", "config.json");
 const golfersPath = path.join(process.cwd(), "data", "golfers.json");
 
 function readDraft(): DraftState {
+  if (!fs.existsSync(draftPath)) {
+    const empty: DraftState = { picks: [] };
+    fs.writeFileSync(draftPath, JSON.stringify(empty, null, 2));
+    return empty;
+  }
   return JSON.parse(fs.readFileSync(draftPath, "utf-8"));
 }
 

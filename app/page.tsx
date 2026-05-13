@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import DraftBoard from "@/components/DraftBoard";
 import GolferList from "@/components/GolferList";
@@ -28,6 +28,7 @@ export default function Home() {
   const [undoing, setUndoing] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
   const [celebration, setCelebration] = useState<{ golferName: string; drafter: string } | null>(null);
+  const handleCelebrationDone = useCallback(() => setCelebration(null), []);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Draft state — initially fetched, then kept live via SSE
@@ -314,7 +315,7 @@ export default function Home() {
 
       <PickCelebration
         pick={celebration}
-        onDone={() => setCelebration(null)}
+        onDone={handleCelebrationDone}
       />
     </div>
   );
