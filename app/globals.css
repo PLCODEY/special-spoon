@@ -19,7 +19,32 @@
   }
 }
 
-@keyframes finishHim {
+@keyframes golferSwing {
+  0%   { transform: rotate(-25deg) scale(1.1); }
+  35%  { transform: rotate(20deg) scale(1.15); }
+  55%  { transform: rotate(8deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+@keyframes armSwing {
+  0%   { transform: rotate(-50deg); }
+  40%  { transform: rotate(60deg); }
+  70%  { transform: rotate(30deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes ballFly {
+  0%   { cx: 30; cy: 150; opacity: 0; r: 6; }
+  5%   { opacity: 1; }
+  100% { cx: 300; cy: 60; opacity: 0; r: 3; }
+}
+
+.golfer-swing { animation: golferSwing 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+.golfer-hold  { transform: rotate(0deg) scale(1); }
+.arm-swing    { animation: armSwing 0.65s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+.ball-fly     { animation: ballFly 0.9s ease-out 0.2s forwards; }
+
+
   0%   { opacity: 0; letter-spacing: 0.3em; text-shadow: 0 0 40px #ff0000; }
   15%  { opacity: 1; letter-spacing: 0.15em; text-shadow: 0 0 20px #ff4400, 0 0 60px #ff0000; }
   80%  { opacity: 1; letter-spacing: 0.15em; text-shadow: 0 0 20px #ff4400, 0 0 60px #ff0000; }

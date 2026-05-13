@@ -5,6 +5,7 @@ import DraftBoard from "@/components/DraftBoard";
 import GolferList from "@/components/GolferList";
 import Standings from "@/components/Standings";
 import LiveLeaderboard from "@/components/LiveLeaderboard";
+import PickCelebration from "@/components/PickCelebration";
 import { calculateStandings } from "@/lib/scoring";
 import { Config, LeaderboardEntry, Pick } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [undoing, setUndoing] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
+  const [celebration, setCelebration] = useState<{ golferName: string; drafter: string } | null>(null);
 
   // Draft state — initially fetched, then kept live via SSE
   const [draftData, setDraftData] = useState<DraftPayload | null>(null);
@@ -100,14 +102,16 @@ export default function Home() {
     : [];
 
   async function handlePick(golferId: string) {
+    const drafter = currentPicker || "";
+    const golfer = golfers.find((g) => g.id === golferId);
     const res = await fetch("/api/draft", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ golferId }),
     });
-    // SSE will push the update — no need to manually refresh
-    if (!res.ok) {
-      // Fallback: refresh manually if SSE isn't connected
+    if (res.ok && golfer && drafter) {
+      setCelebration({ golferName: golfer.name, drafter });
+    } else if (!res.ok) {
       fetch("/api/draft").then((r) => r.json()).then(setDraftData);
     }
   }
@@ -280,6 +284,11 @@ export default function Home() {
           </section>
         )}
       </main>
+
+      <PickCelebration
+        pick={celebration}
+        onDone={() => setCelebration(null)}
+      />
     </div>
   );
 }
