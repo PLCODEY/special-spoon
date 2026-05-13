@@ -54,7 +54,7 @@ export default function Standings({ standings, hasLiveData }: Props) {
               {/* blood bar top */}
               <div className="finish-him-bar absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-700 to-transparent" />
               <div className="finish-him-text text-2xl tracking-widest drop-shadow-lg">
-                Finish Him!
+                Fatality!
               </div>
               <div className="finish-him-sub text-red-600 text-xs mt-1 tracking-widest uppercase font-bold">
                 {team.eliminationReason}

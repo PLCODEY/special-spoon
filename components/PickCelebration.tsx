@@ -1,19 +1,22 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 
-const MESSAGES = [
-  "Great pick, sexy! 😘",
-  "Ooh la la, now THAT'S a pick! 🔥",
-  "Incredible choice, you gorgeous genius!",
-  "Hot pick from a hot drafter 💋",
-  "Yowza! Looking good, picking GREAT!",
-  "Chef's kiss, you beautiful mind! 😍",
-  "That's what winners do, handsome!",
-  "BOOM! Nailed it, you stunner!",
-  "Magnificent. Just like you. 😏",
-  "Big brain, big moves, big pick! 💪",
-  "Absolutely delicious pick, darling!",
-  "You had me at that pick 🥰",
+const MESSAGE_TEMPLATES = [
+  (name: string) => `Ooh ${name}, now THAT'S a pick! 🔥`,
+  (name: string) => `${name} you absolute genius! 😘`,
+  (name: string) => `Hot pick from a hot drafter. Love you ${name} 💋`,
+  (name: string) => `Yowza ${name}! Looking good, picking GREAT!`,
+  (name: string) => `Chef's kiss ${name}, you beautiful mind! 😍`,
+  (name: string) => `That's what winners do, ${name}!`,
+  (name: string) => `BOOM ${name}! Nailed it, you stunner!`,
+  (name: string) => `Magnificent. Just like you, ${name}. 😏`,
+  (name: string) => `Big brain ${name}, big moves, big pick! 💪`,
+  (name: string) => `${name} you had me at that pick 🥰`,
+  (name: string) => `Absolutely delicious pick, ${name} darling!`,
+  (name: string) => `${name} is built different. What a pick! 🏆`,
+  (name: string) => `The legend ${name} strikes again! 🔥`,
+  (name: string) => `${name} coming in CLUTCH! Gorgeous! 😍`,
+  (name: string) => `Is there anything ${name} can't do?! 💋`,
 ];
 
 interface Props {
@@ -22,7 +25,10 @@ interface Props {
 }
 
 export default function PickCelebration({ pick, onDone }: Props) {
-  const [message] = useState(() => MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
+  const [message] = useState(() => {
+    const template = MESSAGE_TEMPLATES[Math.floor(Math.random() * MESSAGE_TEMPLATES.length)];
+    return template(pick?.drafter ?? "");
+  });
   const [phase, setPhase] = useState<"swing" | "reveal" | "out">("swing");
 
   const dismiss = useCallback(() => {
