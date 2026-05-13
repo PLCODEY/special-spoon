@@ -45,6 +45,7 @@
 .ball-fly     { animation: ballFly 0.9s ease-out 0.2s forwards; }
 
 
+@keyframes finishHim {
   0%   { opacity: 0; letter-spacing: 0.3em; text-shadow: 0 0 40px #ff0000; }
   15%  { opacity: 1; letter-spacing: 0.15em; text-shadow: 0 0 20px #ff4400, 0 0 60px #ff0000; }
   80%  { opacity: 1; letter-spacing: 0.15em; text-shadow: 0 0 20px #ff4400, 0 0 60px #ff0000; }
