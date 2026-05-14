@@ -42,14 +42,16 @@ export async function fetchMastersLeaderboard(
           listData?.events || [];
         const mastersEvent = events.find(
           (e) =>
+            e.name?.toLowerCase().includes("pga championship") ||
+            e.shortName?.toLowerCase().includes("pga championship") ||
             e.name?.toLowerCase().includes("masters") ||
             e.shortName?.toLowerCase().includes("masters")
-        );
+        ) || events[0];
         if (mastersEvent) {
           eventId = mastersEvent.id;
-          console.log(`ESPN: discovered Masters event ID: ${eventId}`);
+          console.log(`ESPN: discovered event ID: ${eventId} (${mastersEvent.name})`);
         } else {
-          const msg = `Masters not found. Events: ${events.slice(0, 5).map((e) => e.name).join(", ")}`;
+          const msg = `No active event found. Events: ${events.slice(0, 5).map((e) => e.name).join(", ")}`;
           console.error(msg);
           return { entries: [], eventId: null, error: msg };
         }
