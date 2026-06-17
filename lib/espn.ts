@@ -42,6 +42,10 @@ export async function fetchMastersLeaderboard(
           listData?.events || [];
         const mastersEvent = events.find(
           (e) =>
+            e.name?.toLowerCase().includes("u.s. open") ||
+            e.shortName?.toLowerCase().includes("u.s. open") ||
+            e.name?.toLowerCase().includes("us open") ||
+            e.shortName?.toLowerCase().includes("us open") ||
             e.name?.toLowerCase().includes("pga championship") ||
             e.shortName?.toLowerCase().includes("pga championship") ||
             e.name?.toLowerCase().includes("masters") ||
