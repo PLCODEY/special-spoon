@@ -1,6 +1,6 @@
 {
   "competition": "US Open 2026",
-  "pickOrder": ["Shaun", "Henry", "Paul", "Chris", "Tony", "Jason", "Miky", "Vic", "Jack", "Wilson"],
+  "pickOrder": ["Paul", "Shaun", "Tony", "Vic", "Miky", "Jack", "Henry", "Chris", "Wilson", "Jason"],
   "picksPerPerson": 4,
   "espnEventId": null,
   "active": true
