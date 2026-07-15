@@ -27,7 +27,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [undoing, setUndoing] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
-  const [celebration, setCelebration] = useState<{ golferName: string; drafter: string } | null>(null);
+  const [celebration, setCelebration] = useState<{ golferName: string; drafter: string; nextPicker: string | null; odds: string } | null>(null);
   const handleCelebrationDone = useCallback(() => setCelebration(null), []);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -131,7 +131,7 @@ export default function Home() {
       body: JSON.stringify({ golferId }),
     });
     if (res.ok && golfer && drafter) {
-      setCelebration({ golferName: golfer.name, drafter });
+      setCelebration({ golferName: golfer.name, drafter, nextPicker: nextPicker, odds: golfer.odds });
     } else if (!res.ok) {
       fetch("/api/draft").then((r) => r.json()).then(setDraftData);
     }
