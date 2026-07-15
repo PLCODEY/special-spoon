@@ -4,9 +4,11 @@ import path from "path";
 import { Config } from "@/lib/types";
 
 const configPath = path.join(process.cwd(), "data", "config.json");
+const configDefaultPath = path.join(process.cwd(), "public", "defaults", "config.json");
 
 function readConfig(): Config {
-  return JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  const filePath = fs.existsSync(configPath) ? configPath : configDefaultPath;
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
 function writeConfig(config: Config) {

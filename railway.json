@@ -12,7 +12,7 @@
   },
   "volumes": [
     {
-      "mountPath": "/app/data",
+      "mountPath": "/app/data/picks",
       "name": "golf-draft-data"
     }
   ]

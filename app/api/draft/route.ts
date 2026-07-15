@@ -5,13 +5,16 @@ import { DraftState, Pick, Config } from "@/lib/types";
 import { getSnakeOrder, getDraftedGolferIds } from "@/lib/draft";
 import { eventBus } from "@/lib/eventBus";
 
-const draftPath = path.join(process.cwd(), "data", "draft.json");
+const draftPath = path.join(process.cwd(), "data", "picks", "draft.json");
 const configPath = path.join(process.cwd(), "data", "config.json");
+const configDefaultPath = path.join(process.cwd(), "public", "defaults", "config.json");
 const golfersPath = path.join(process.cwd(), "data", "golfers.json");
+const golfersDefaultPath = path.join(process.cwd(), "public", "defaults", "golfers.json");
 
 function readDraft(): DraftState {
   if (!fs.existsSync(draftPath)) {
     const empty: DraftState = { picks: [] };
+    fs.mkdirSync(path.dirname(draftPath), { recursive: true });
     fs.writeFileSync(draftPath, JSON.stringify(empty, null, 2));
     return empty;
   }
@@ -19,14 +22,17 @@ function readDraft(): DraftState {
 }
 
 function readConfig(): Config {
-  return JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  const filePath = fs.existsSync(configPath) ? configPath : configDefaultPath;
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
 function readGolfers() {
-  return JSON.parse(fs.readFileSync(golfersPath, "utf-8"));
+  const filePath = fs.existsSync(golfersPath) ? golfersPath : golfersDefaultPath;
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
 function writeDraft(draft: DraftState) {
+  fs.mkdirSync(path.dirname(draftPath), { recursive: true });
   fs.writeFileSync(draftPath, JSON.stringify(draft, null, 2));
 }
 

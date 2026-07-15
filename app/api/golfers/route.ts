@@ -4,10 +4,12 @@ import path from "path";
 import { Golfer } from "@/lib/types";
 
 const golfersPath = path.join(process.cwd(), "data", "golfers.json");
+const golfersDefaultPath = path.join(process.cwd(), "public", "defaults", "golfers.json");
 
 export async function GET() {
   try {
-    const golfers = JSON.parse(fs.readFileSync(golfersPath, "utf-8"));
+    const filePath = fs.existsSync(golfersPath) ? golfersPath : golfersDefaultPath;
+    const golfers = JSON.parse(fs.readFileSync(filePath, "utf-8"));
     return NextResponse.json(golfers);
   } catch {
     return NextResponse.json(
